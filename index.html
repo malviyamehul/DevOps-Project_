@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OpsForge — Cloud-Native DevOps Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #080c10;
+    --bg2: #0d1117;
+    --bg3: #111820;
+    --surface: #161d27;
+    --surface2: #1c2534;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8edf3;
+    --text2: #8b9ab0;
+    --text3: #4a5a6e;
+    --accent: #00d4aa;
+    --accent2: #0099ff;
+    --accent3: #7c5cfc;
+    --warn: #f59e0b;
+    --red: #ef4444;
+    --green: #22c55e;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-serif: 'Instrument Serif', serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1.5px solid rgba(0,212,170,0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: all 0.15s ease;
+  }
+
+  /* ---- NOISE OVERLAY ---- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ---- GRID BG ---- */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- NAV ---- */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 40px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(8,12,16,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: #080c10;
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text2);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-cta {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: none;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .nav-cta:hover { background: var(--accent); color: var(--bg); }
+
+  /* ---- HERO ---- */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 120px 40px 80px;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+  .orb1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,212,170,0.12) 0%, transparent 70%);
+    top: -100px; right: -100px;
+    animation: float1 8s ease-in-out infinite;
+  }
+  .orb2 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(124,92,252,0.1) 0%, transparent 70%);
+    bottom: 0; left: -50px;
+    animation: float2 10s ease-in-out infinite;
+  }
+  @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
+  @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-20px)} }
+
+  .hero-content { max-width: 900px; position: relative; }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,212,170,0.08);
+    border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    margin-bottom: 32px;
+    animation: fadeUp 0.8s ease both;
+  }
+  .badge-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:0.5;transform:scale(1.3)}
+  }
+
+  .hero-title {
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -3px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.8s ease 0.1s both;
+  }
+  .hero-title .line1 { display: block; color: var(--text); }
+  .hero-title .line2 {
+    display: block;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-style: italic;
+    font-family: var(--font-serif);
+    font-weight: 400;
+  }
+
+  .hero-sub {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.8;
+    max-width: 580px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+  .hero-sub span { color: var(--accent); }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    animation: fadeUp 0.8s ease 0.3s both;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #080c10;
+    padding: 14px 32px;
+    border-radius: 4px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: -0.2px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { background: #00f0c2; transform: translateY(-1px); }
+
+  .btn-secondary {
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 14px 32px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+
+  .hero-stats {
+    display: flex;
+    gap: 40px;
+    margin-top: 80px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    animation: fadeUp 0.8s ease 0.4s both;
+    flex-wrap: wrap;
+  }
+  .stat-item { }
+  .stat-num {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--text);
+    display: block;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ---- TERMINAL BLOCK ---- */
+  .hero-terminal {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 380px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    animation: fadeUp 0.8s ease 0.5s both;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+  }
+  .terminal-bar {
+    background: var(--surface);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .t-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .t-dot.r { background: #ef4444; }
+  .t-dot.y { background: #f59e0b; }
+  .t-dot.g { background: #22c55e; }
+  .terminal-title { font-size: 11px; color: var(--text3); margin-left: 8px; letter-spacing: 0.05em; }
+  .terminal-body { padding: 16px; line-height: 1.7; }
+  .t-line { display: flex; gap: 8px; margin-bottom: 2px; }
+  .t-prompt { color: var(--accent); }
+  .t-cmd { color: var(--text2); }
+  .t-out { color: var(--text3); padding-left: 16px; }
+  .t-success { color: var(--green); padding-left: 16px; }
+  .t-warn { color: var(--warn); padding-left: 16px; }
+  .t-info { color: var(--accent2); padding-left: 16px; }
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- SECTIONS ---- */
+  section { position: relative; z-index: 1; }
+
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-tag::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .section-title {
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    color: var(--text);
+  }
+  .section-title em {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--text2);
+  }
+
+  /* ---- STACK SECTION ---- */
+  .stack-section {
+    padding: 100px 40px;
+    border-top: 1px solid var(--border);
+  }
+  .stack-header { max-width: 600px; margin-bottom: 64px; }
+  .stack-header .section-title { margin-bottom: 16px; }
+  .stack-header p {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .stack-item {
+    background: var(--bg2);
+    padding: 24px 20px;
+    transition: background 0.2s;
+    cursor: default;
+  }
+  .stack-item:hover { background: var(--surface); }
+  .stack-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .stack-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
+  }
+  .stack-cat {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .stack-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+  .tag-infra { background: rgba(0,212,170,0.1); color: var(--accent); }
+  .tag-ci { background: rgba(0,153,255,0.1); color: var(--accent2); }
+  .tag-sec { background: rgba(245,158,11,0.1); color: var(--warn); }
+  .tag-obs { background: rgba(124,92,252,0.1); color: var(--accent3); }
+  .tag-deploy { background: rgba(34,197,94,0.1); color: var(--green); }
+
+  /* ---- PIPELINE SECTION ---- */
+  .pipeline-section {
+    padding: 100px 40px;
+    border-top: 1px solid var(--border);
+  }
+  .pipeline-header { max-width: 600px; margin-bottom: 64px; }
+
+  .pipelines { display: flex; flex-direction: column; gap: 48px; }
+
+  .pipeline-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .pipeline-title-bar {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pipeline-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pipeline-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+  .p-infra .pipeline-dot { background: var(--accent); }
+  .p-app .pipeline-dot { background: var(--accent2); }
+
+  .pipeline-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .pipeline-stages {
+    padding: 28px;
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    overflow-x: auto;
+  }
+  .stage {
+    flex: 1;
+    min-width: 120px;
+    padding: 16px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-right: 8px;
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .stage:hover { border-color: var(--border2); background: var(--surface); }
+  .stage:last-child { margin-right: 0; }
+  .stage-icon { font-size: 20px; margin-bottom: 8px; }
+  .stage-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.2px;
+    margin-bottom: 4px;
+  }
+  .stage-tools {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    line-height: 1.6;
+  }
+  .stage-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    color: var(--text3);
+    font-size: 14px;
+  }
+  .stage-badge {
+    position: absolute;
+    top: -8px;
+    right: 8px;
+    background: var(--warn);
+    color: #080c10;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+  .stage-badge.green { background: var(--green); }
+  .stage-badge.blue { background: var(--accent2); }
+
+  /* ---- ENVIRONMENTS ---- */
+  .env-section {
+    padding: 100px 40px;
+    border-top: 1px solid var(--border);
+  }
+  .env-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 64px;
+  }
+  .env-card {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .env-header {
+    padding: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .env-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .env-staging .env-label { color: var(--warn); }
+  .env-prod .env-label { color: var(--accent); }
+  .env-staging { background: var(--bg2); }
+  .env-prod { background: linear-gradient(135deg, #0a0e14, #0d1520); }
+  .env-title {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    margin-bottom: 8px;
+  }
+  .env-desc {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+  .env-body { padding: 28px; }
+  .env-items { display: flex; flex-direction: column; gap: 12px; }
+  .env-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .env-item-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .env-item-text { }
+  .env-item-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.2px;
+  }
+  .env-item-detail {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  /* ---- SECURITY ---- */
+  .security-section {
+    padding: 100px 40px;
+    border-top: 1px solid var(--border);
+  }
+  .security-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 64px;
+  }
+  .sec-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .sec-card:hover { border-color: var(--warn); transform: translateY(-2px); }
+  .sec-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 12px;
+    letter-spacing: 0.08em;
+  }
+  .sec-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+  }
+  .sec-tool {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--warn);
+    margin-bottom: 12px;
+  }
+  .sec-desc {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+    font-family: var(--font-mono);
+  }
+
+  /* ---- OBSERVABILITY ---- */
+  .obs-section {
+    padding: 100px 40px;
+    border-top: 1px solid var(--border);
+  }
+  .obs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 64px;
+  }
+  .obs-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    transition: border-color 0.2s;
+  }
+  .obs-card:hover { border-color: var(--accent3); }
+  .obs-icon { font-size: 32px; margin-bottom: 16px; }
+  .obs-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .obs-desc {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .obs-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .obs-tag {
+    background: rgba(124,92,252,0.1);
+    border: 1px solid rgba(124,92,252,0.2);
+    color: var(--accent3);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  /* ---- CTA ---- */
+  .cta-section {
+    padding: 120px 40px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-glow {
+    position: absolute;
+    width: 800px; height: 400px;
+    background: radial-gradient(ellipse, rgba(0,212,170,0.06) 0%, transparent 70%);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .cta-title {
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .cta-sub {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text2);
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .cta-actions { display: flex; gap: 16px; justify-content: center; position: relative; }
+
+  /* ---- FOOTER ---- */
+  footer {
+    padding: 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: gap;
+    position: relative;
+    z-index: 1;
+  }
+  .footer-left {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+  }
+  .footer-links a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text3);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--accent); }
+
+  /* SCROLL ANIMATION */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (max-width: 900px) {
+    .hero-terminal { display: none; }
+    .env-grid { grid-template-columns: 1fr; }
+    .security-grid { grid-template-columns: 1fr 1fr; }
+    .obs-grid { grid-template-columns: 1fr; }
+    nav { padding: 0 20px; }
+    .hero { padding: 100px 20px 60px; }
+    .stack-section, .pipeline-section, .env-section, .security-section, .obs-section, .cta-section { padding: 60px 20px; }
+  }
+  @media (max-width: 600px) {
+    .security-grid { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="logo-mark">O</div>
+    OpsForge
+  </a>
+  <ul class="nav-links">
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#pipelines">Pipelines</a></li>
+    <li><a href="#environments">Environments</a></li>
+    <li><a href="#security">Security</a></li>
+    <li><a href="#observability">Observability</a></li>
+  </ul>
+  <a href="https://github.com/malviyamehul/DevOps-Project_" target="_self" class="nav-cta">View on GitHub →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-orb orb1"></div>
+  <div class="hero-orb orb2"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <div class="badge-dot"></div>
+      DevOps / SRE Portfolio Project
+    </div>
+    <h1 class="hero-title">
+      <span class="line1">Cloud-Native</span>
+      <span class="line2">Incident Tracker</span>
+    </h1>
+    <p class="hero-sub">
+      A production-grade <span>microservices platform</span> built for reliability engineers.
+      Full IaC, dual-pipeline CI/CD, blue-green deployments, and end-to-end
+      security scanning — deployed on <span>AWS EKS</span> via <span>Terraform + ArgoCD</span>.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/malviyamehul/DevOps-Project_" target="_blank" class="btn-primary" title="Might be unavailable, incase of system down">
+        ⬡ Live 
+      </a>
+      <a href="#pipelines" class="btn-secondary">
+        ↓ Architecture
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-num">2</span>
+        <span class="stat-label">Environments</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">3</span>
+        <span class="stat-label">Microservices</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">6</span>
+        <span class="stat-label">Security gates</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">0</span>
+        <span class="stat-label">Stored secrets</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal widget -->
+  <div class="hero-terminal">
+    <div class="terminal-bar">
+      <div class="t-dot r"></div>
+      <div class="t-dot y"></div>
+      <div class="t-dot g"></div>
+      <span class="terminal-title">pipeline · staging</span>
+    </div>
+    <div class="terminal-body">
+      <div class="t-line"><span class="t-prompt">$</span><span class="t-cmd">terraform plan -var-file=staging.tfvars</span></div>
+      <div class="t-line"><span class="t-success">✓ Plan: 14 to add, 2 to change, 0 destroy</span></div>
+      <div class="t-line" style="margin-top:8px"><span class="t-prompt">$</span><span class="t-cmd">trivy image opsforge/task-service:v1.4.2</span></div>
+      <div class="t-line"><span class="t-success">✓ Total: 0 (CRITICAL: 0, HIGH: 0)</span></div>
+      <div class="t-line" style="margin-top:8px"><span class="t-prompt">$</span><span class="t-cmd">kubectl argo rollouts get rollout task-svc</span></div>
+      <div class="t-line"><span class="t-info">● Canary  25% traffic → stable</span></div>
+      <div class="t-line"><span class="t-info">  Weight: 25 → 50 → 75 → 100</span></div>
+      <div class="t-line" style="margin-top:8px"><span class="t-prompt">$</span><span class="t-cmd">argocd app sync opsforge-staging</span></div>
+      <div class="t-line"><span class="t-success">✓ Synced  Healthy  v1.4.2</span></div>
+      <div class="t-line" style="margin-top:8px"><span class="t-prompt">$</span><span class="t-cmd" id="typing-cmd">▌</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK SECTION -->
+<section class="stack-section" id="stack">
+  <div class="stack-header reveal">
+    <div class="section-tag">Tech Stack</div>
+    <h2 class="section-title">Every tool <em>earns its place</em></h2>
+    <p style="margin-top:16px">Each technology was chosen for a specific role in the production pipeline — no vanity tools, no redundancy.</p>
+  </div>
+
+  <div class="stack-grid reveal">
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,212,170,0.1)">☁</div>
+      <div class="stack-name">AWS EKS</div>
+      <div class="stack-cat">Orchestration</div>
+      <div class="stack-tag tag-infra">Infrastructure</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,212,170,0.1)">⬡</div>
+      <div class="stack-name">Terraform</div>
+      <div class="stack-cat">IaC provisioning</div>
+      <div class="stack-tag tag-infra">Infrastructure</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,212,170,0.1)">⚙</div>
+      <div class="stack-name">Ansible</div>
+      <div class="stack-cat">Config management</div>
+      <div class="stack-tag tag-infra">Infrastructure</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,153,255,0.1)">⟳</div>
+      <div class="stack-name">Jenkins</div>
+      <div class="stack-cat">CI orchestration</div>
+      <div class="stack-tag tag-ci">CI/CD</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,153,255,0.1)">▶</div>
+      <div class="stack-name">GitLab CI</div>
+      <div class="stack-cat">Pipeline runner</div>
+      <div class="stack-tag tag-ci">CI/CD</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(34,197,94,0.1)">◈</div>
+      <div class="stack-name">ArgoCD</div>
+      <div class="stack-cat">GitOps delivery</div>
+      <div class="stack-tag tag-deploy">Deployment</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(34,197,94,0.1)">⧉</div>
+      <div class="stack-name">Argo Rollouts</div>
+      <div class="stack-cat">Blue-green / canary</div>
+      <div class="stack-tag tag-deploy">Deployment</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(124,92,252,0.1)">◉</div>
+      <div class="stack-name">Prometheus</div>
+      <div class="stack-cat">Metrics collection</div>
+      <div class="stack-tag tag-obs">Observability</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(124,92,252,0.1)">▦</div>
+      <div class="stack-name">Grafana</div>
+      <div class="stack-cat">Dashboards & alerts</div>
+      <div class="stack-tag tag-obs">Observability</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(245,158,11,0.1)">⬡</div>
+      <div class="stack-name">Trivy</div>
+      <div class="stack-cat">Image / CVE scan</div>
+      <div class="stack-tag tag-sec">Security</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(245,158,11,0.1)">◈</div>
+      <div class="stack-name">tfsec / Checkov</div>
+      <div class="stack-cat">IaC static analysis</div>
+      <div class="stack-tag tag-sec">Security</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(245,158,11,0.1)">⬡</div>
+      <div class="stack-name">OWASP ZAP</div>
+      <div class="stack-cat">Dynamic analysis</div>
+      <div class="stack-tag tag-sec">Security</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,153,255,0.1)">⧉</div>
+      <div class="stack-name">Docker / ECR</div>
+      <div class="stack-cat">Container registry</div>
+      <div class="stack-tag tag-ci">CI/CD</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,212,170,0.1)">◈</div>
+      <div class="stack-name">VPC + ALB</div>
+      <div class="stack-cat">Networking</div>
+      <div class="stack-tag tag-infra">Infrastructure</div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon" style="background:rgba(0,212,170,0.1)">⬡</div>
+      <div class="stack-name">S3 + IAM IRSA</div>
+      <div class="stack-cat">Secrets & storage</div>
+      <div class="stack-tag tag-infra">Infrastructure</div>
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINES -->
+<section class="pipeline-section" id="pipelines">
+  <div class="pipeline-header reveal">
+    <div class="section-tag">CI/CD</div>
+    <h2 class="section-title">Two pipelines, <em>one source of truth</em></h2>
+    <p style="margin-top:16px; font-family:var(--font-mono); font-size:13px; color:var(--text2); line-height:1.7">
+      Infra and application pipelines are decoupled. Each has its own trigger, its own security gates, and its own manual approval before touching production.
+    </p>
+  </div>
+
+  <div class="pipelines reveal">
+    <!-- Infra Pipeline -->
+    <div class="pipeline-card p-infra">
+      <div class="pipeline-title-bar">
+        <div class="pipeline-name">
+          <div class="pipeline-dot"></div>
+          Infrastructure Pipeline
+        </div>
+        <div class="pipeline-meta">Trigger: changes to /terraform/**</div>
+      </div>
+      <div class="pipeline-stages">
+        <div class="stage">
+          <div class="stage-icon">🔍</div>
+          <div class="stage-name">Lint & Validate</div>
+          <div class="stage-tools">terraform fmt<br>terraform validate<br>tflint</div>
+          <div class="stage-badge green">AUTO</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">🛡</div>
+          <div class="stage-name">IaC Scan</div>
+          <div class="stage-tools">tfsec<br>checkov<br>fail on HIGH</div>
+          <div class="stage-badge">GATE</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">📋</div>
+          <div class="stage-name">Plan Staging</div>
+          <div class="stage-tools">tf plan<br>staging.tfvars<br>S3 state backend</div>
+          <div class="stage-badge green">AUTO</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">⚡</div>
+          <div class="stage-name">Apply Staging</div>
+          <div class="stage-tools">tf apply<br>DynamoDB lock<br>Ansible config</div>
+          <div class="stage-badge green">AUTO</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">✋</div>
+          <div class="stage-name">Approval</div>
+          <div class="stage-tools">Manual gate<br>Slack notify<br>72hr timeout</div>
+          <div class="stage-badge">MANUAL</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">🚀</div>
+          <div class="stage-name">Apply Prod</div>
+          <div class="stage-tools">tf apply prod<br>Ansible prod<br>verify health</div>
+          <div class="stage-badge blue">PROD</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Pipeline -->
+    <div class="pipeline-card p-app">
+      <div class="pipeline-title-bar">
+        <div class="pipeline-name">
+          <div class="pipeline-dot"></div>
+          Application Pipeline
+        </div>
+        <div class="pipeline-meta">Trigger: PR merge to main</div>
+      </div>
+      <div class="pipeline-stages">
+        <div class="stage">
+          <div class="stage-icon">🔨</div>
+          <div class="stage-name">Build & SAST</div>
+          <div class="stage-tools">Docker build<br>Semgrep<br>dep check</div>
+          <div class="stage-badge green">AUTO</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">🛡</div>
+          <div class="stage-name">Image Scan</div>
+          <div class="stage-tools">Trivy<br>ECR push<br>SBOM sign</div>
+          <div class="stage-badge">GATE</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">🔄</div>
+          <div class="stage-name">Deploy Staging</div>
+          <div class="stage-tools">ArgoCD sync<br>Helm chart<br>staging EKS</div>
+          <div class="stage-badge green">AUTO</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">🧪</div>
+          <div class="stage-name">Tests + DAST</div>
+          <div class="stage-tools">Smoke tests<br>OWASP ZAP<br>e2e suite</div>
+          <div class="stage-badge">GATE</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">✋</div>
+          <div class="stage-name">Approval</div>
+          <div class="stage-tools">Manual gate<br>Slack notify<br>test report</div>
+          <div class="stage-badge">MANUAL</div>
+        </div>
+        <div class="stage">
+          <div class="stage-icon">🎯</div>
+          <div class="stage-name">Prod Deploy</div>
+          <div class="stage-tools">Canary rollout<br>10→50→100%<br>auto rollback</div>
+          <div class="stage-badge blue">PROD</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ENVIRONMENTS -->
+<section class="env-section" id="environments">
+  <div class="reveal">
+    <div class="section-tag">Environments</div>
+    <h2 class="section-title">Staging <em>is</em> production,<br>minus the traffic</h2>
+    <p style="margin-top:16px; font-family:var(--font-mono); font-size:13px; color:var(--text2); line-height:1.7; max-width:560px">
+      Staging shares the same VPC topology, EKS node config, and Terraform module as production. What passes staging, passes production. They differ only in scale and IAM boundary.
+    </p>
+  </div>
+
+  <div class="env-grid reveal">
+    <div class="env-card env-staging">
+      <div class="env-header">
+        <div class="env-label">⬡ Staging · Pre-production</div>
+        <div class="env-title">Validate Everything</div>
+        <div class="env-desc">Same infra modules as prod. Application deploys here first. DAST runs here. Manual approval gate follows.</div>
+      </div>
+      <div class="env-body">
+        <div class="env-items">
+          <div class="env-item">
+            <div class="env-item-icon">☁</div>
+            <div class="env-item-text">
+              <div class="env-item-name">AWS EKS — t3.medium nodes</div>
+              <div class="env-item-detail">2 nodes · same VPC layout · separate AWS account</div>
+            </div>
+          </div>
+          <div class="env-item">
+            <div class="env-item-icon">⬡</div>
+            <div class="env-item-text">
+              <div class="env-item-name">Terraform state — staging.tfvars</div>
+              <div class="env-item-detail">S3 backend · DynamoDB lock · same modules as prod</div>
+            </div>
+          </div>
+          <div class="env-item">
+            <div class="env-item-icon">◈</div>
+            <div class="env-item-text">
+              <div class="env-item-name">ArgoCD — auto-sync on merge</div>
+              <div class="env-item-detail">Watches k8s-manifests/staging branch</div>
+            </div>
+          </div>
+          <div class="env-item">
+            <div class="env-item-icon">◉</div>
+            <div class="env-item-text">
+              <div class="env-item-name">Prometheus + Grafana</div>
+              <div class="env-item-detail">Full observability stack · alerting disabled</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="env-card env-prod">
+      <div class="env-header">
+        <div class="env-label">★ Production · Live traffic</div>
+        <div class="env-title">Serve with Confidence</div>
+        <div class="env-desc">Manual approval gate required. Blue-green or canary strategy. Instant rollback via ArgoCD. Alerts fire on Grafana.</div>
+      </div>
+      <div class="env-body">
+        <div class="env-items">
+          <div class="env-item">
+            <div class="env-item-icon">☁</div>
+            <div class="env-item-text">
+              <div class="env-item-name">AWS EKS — m5.large nodes</div>
+              <div class="env-item-detail">Autoscaling group · multi-AZ · dedicated VPC</div>
+            </div>
+          </div>
+          <div class="env-item">
+            <div class="env-item-icon">⬡</div>
+            <div class="env-item-text">
+              <div class="env-item-name">Terraform state — prod.tfvars</div>
+              <div class="env-item-detail">Separate S3 bucket · IAM boundary enforced</div>
+            </div>
+          </div>
+          <div class="env-item">
+            <div class="env-item-icon">◈</div>
+            <div class="env-item-text">
+              <div class="env-item-name">Argo Rollouts — canary 10→100%</div>
+              <div class="env-item-detail">Watches k8s-manifests/prod · manual promotion</div>
+            </div>
+          </div>
+          <div class="env-item">
+            <div class="env-item-icon">◉</div>
+            <div class="env-item-text">
+              <div class="env-item-name">Prometheus + Grafana alerts</div>
+              <div class="env-item-detail">PagerDuty integration · SLA dashboards live</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section class="security-section" id="security">
+  <div class="reveal">
+    <div class="section-tag">Security</div>
+    <h2 class="section-title">Shift left, <em>every gate</em></h2>
+    <p style="margin-top:16px; font-family:var(--font-mono); font-size:13px; color:var(--text2); line-height:1.7; max-width:560px">
+      Six security checks run before any code reaches staging. Zero secrets live in the cluster — IRSA means pods assume IAM roles directly.
+    </p>
+  </div>
+
+  <div class="security-grid reveal">
+    <div class="sec-card">
+      <div class="sec-num">01 / SAST</div>
+      <div class="sec-name">Static Analysis</div>
+      <div class="sec-tool">Semgrep · ESLint · Hadolint</div>
+      <div class="sec-desc">Catches hardcoded secrets, injection flaws, and Dockerfile anti-patterns before the image is ever built.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-num">02 / SCA</div>
+      <div class="sec-name">Dependency Scan</div>
+      <div class="sec-tool">Snyk · OWASP Dependency-Check</div>
+      <div class="sec-desc">Audits npm/pip transitive deps for known CVEs. Fails on CRITICAL or HIGH severity findings.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-num">03 / Image</div>
+      <div class="sec-name">Container Scan</div>
+      <div class="sec-tool">Trivy · ECR scan-on-push</div>
+      <div class="sec-desc">Scans OS packages and app layers in the built image. Generates and signs an SBOM for every release tag.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-num">04 / IaC</div>
+      <div class="sec-name">Infra Scan</div>
+      <div class="sec-tool">tfsec · Checkov</div>
+      <div class="sec-desc">Validates Terraform modules for insecure patterns — public S3 buckets, missing encryption, overly permissive SGs.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-num">05 / DAST</div>
+      <div class="sec-name">Dynamic Analysis</div>
+      <div class="sec-tool">OWASP ZAP</div>
+      <div class="sec-desc">Active scan against the running staging deployment. Tests for OWASP Top 10 including SQLi, XSS, auth bypass.</div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-num">06 / Secrets</div>
+      <div class="sec-name">Zero Stored Creds</div>
+      <div class="sec-tool">AWS IRSA · Secrets Manager</div>
+      <div class="sec-desc">No static keys in Kubernetes Secrets. Pods use IRSA to assume IAM roles and pull from Secrets Manager at runtime.</div>
+    </div>
+  </div>
+</section>
+
+<!-- OBSERVABILITY -->
+<section class="obs-section" id="observability">
+  <div class="reveal">
+    <div class="section-tag">Observability</div>
+    <h2 class="section-title">See everything, <em>miss nothing</em></h2>
+  </div>
+
+  <div class="obs-grid reveal">
+    <div class="obs-card">
+      <div class="obs-icon">◉</div>
+      <div class="obs-title">Prometheus</div>
+      <div class="obs-desc">Scrapes metrics from all three microservices, the EKS node exporter, and the kube-state-metrics endpoint. Custom SLO recording rules defined per service.</div>
+      <div class="obs-tags">
+        <span class="obs-tag">node-exporter</span>
+        <span class="obs-tag">kube-state-metrics</span>
+        <span class="obs-tag">service monitors</span>
+        <span class="obs-tag">SLO rules</span>
+      </div>
+    </div>
+    <div class="obs-card">
+      <div class="obs-icon">▦</div>
+      <div class="obs-title">Grafana</div>
+      <div class="obs-desc">Three dashboards: cluster health, application golden signals (latency, traffic, errors, saturation), and deployment tracking. Alerts route to Slack in staging, PagerDuty in production.</div>
+      <div class="obs-tags">
+        <span class="obs-tag">golden signals</span>
+        <span class="obs-tag">deploy markers</span>
+        <span class="obs-tag">Slack alerts</span>
+        <span class="obs-tag">PagerDuty</span>
+      </div>
+    </div>
+    <div class="obs-card">
+      <div class="obs-icon">📋</div>
+      <div class="obs-title">Centralised Logging</div>
+      <div class="obs-desc">Fluent Bit ships pod logs to CloudWatch Logs. Log groups per namespace, retention policy per environment. Structured JSON output from all services.</div>
+      <div class="obs-tags">
+        <span class="obs-tag">Fluent Bit</span>
+        <span class="obs-tag">CloudWatch</span>
+        <span class="obs-tag">structured JSON</span>
+      </div>
+    </div>
+    <div class="obs-card">
+      <div class="obs-icon">🎯</div>
+      <div class="obs-title">Argo Rollouts Analysis</div>
+      <div class="obs-desc">Canary deployments query Prometheus for error rate and p99 latency. If either breaches threshold during rollout, Argo automatically aborts and rolls back without human intervention.</div>
+      <div class="obs-tags">
+        <span class="obs-tag">analysis templates</span>
+        <span class="obs-tag">auto rollback</span>
+        <span class="obs-tag">p99 latency</span>
+        <span class="obs-tag">error rate SLO</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="cta-title reveal">
+    Built to be<br>
+    <span style="background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-family:var(--font-serif);font-style:italic;font-weight:400">
+      interviewed on
+    </span>
+  </div>
+  <p class="cta-sub reveal">Every architectural decision is a talking point. Zero hand-waving.</p>
+  <div class="cta-actions reveal">
+    <a href="https://github.com" target="_blank" class="btn-primary">⬡ GitHub Repository</a>
+    <a href="#stack" class="btn-secondary">↑ Back to stack</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    OpsForge · Cloud-Native DevOps Platform · 2025
+  </div>
+  <ul class="footer-links">
+    <li><a href="#">Architecture</a></li>
+    <li><a href="#">Runbook</a></li>
+    <li><a href="#">GitHub</a></li>
+  </ul>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+  });
+
+  function animRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animRing);
+  }
+  animRing();
+
+  document.querySelectorAll('a, button, .stack-item, .sec-card, .obs-card, .stage').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(2)';
+      ring.style.transform = 'translate(-50%,-50%) scale(1.4)';
+      ring.style.borderColor = 'rgba(0,212,170,0.7)';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(1)';
+      ring.style.transform = 'translate(-50%,-50%) scale(1)';
+      ring.style.borderColor = 'rgba(0,212,170,0.4)';
+    });
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(r => io.observe(r));
+
+  // Typing animation in terminal
+  const cmds = [
+    'kubectl get pods -n staging',
+    'terraform output cluster_endpoint',
+    'argocd app history opsforge-prod',
+    'kubectl argo rollouts promote task-svc',
+  ];
+  let ci = 0, ci2 = 0;
+  const typingEl = document.getElementById('typing-cmd');
+  function typeNext() {
+    if (!typingEl) return;
+    const cmd = cmds[ci % cmds.length];
+    if (ci2 < cmd.length) {
+      typingEl.textContent = cmd.slice(0, ++ci2) + '▌';
+      setTimeout(typeNext, 60);
+    } else {
+      setTimeout(() => {
+        ci2 = 0; ci++;
+        typingEl.textContent = '▌';
+        setTimeout(typeNext, 400);
+      }, 2000);
+    }
+  }
+  setTimeout(typeNext, 1500);
+</script>
+</body>
+</html>
