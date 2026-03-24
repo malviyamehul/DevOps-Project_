@@ -1,0 +1,95 @@
+---
+# roles/argocd/tasks/main.yml
+# Installs ArgoCD + Argo Rollouts via Helm, creates the OpsForge Application.
+
+- name: Deploy ArgoCD
+  kubernetes.core.helm:
+    name: argocd
+    chart_ref: argo/argo-cd
+    chart_version: "{{ argocd_chart_version | default('6.4.0') }}"
+    release_namespace: argocd
+    create_namespace: false
+    wait: true
+    values:
+      global:
+        domain: "argocd.{{ cluster_name }}.internal"
+      server:
+        ingress:
+          enabled: "{{ argocd_ingress_enabled | default(false) }}"
+          ingressClassName: alb
+          annotations:
+            alb.ingress.kubernetes.io/scheme: internal
+            alb.ingress.kubernetes.io/target-type: ip
+        extraArgs:
+          - --insecure    # TLS terminated at ALB
+      configs:
+        params:
+          server.insecure: true
+        secret:
+          argocdServerAdminPassword: "{{ argocd_admin_password_bcrypt }}"
+        repositories:
+          opsforge-manifests:
+            url: "{{ gitops_repo_url }}"
+            type: git
+            name: opsforge-manifests
+
+- name: Deploy Argo Rollouts
+  kubernetes.core.helm:
+    name: argo-rollouts
+    chart_ref: argo/argo-rollouts
+    chart_version: "{{ argo_rollouts_chart_version | default('2.35.1') }}"
+    release_namespace: argocd
+    wait: true
+    values:
+      dashboard:
+        enabled: true
+      controller:
+        replicas: 2
+
+- name: Install Argo Rollouts kubectl plugin (informational)
+  debug:
+    msg: "Install plugin with: curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64"
+
+- name: Create ArgoCD Application for staging
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: opsforge-{{ env }}
+        namespace: argocd
+        finalizers:
+          - resources-finalizer.argocd.argoproj.io
+      spec:
+        project: default
+        source:
+          repoURL: "{{ gitops_repo_url }}"
+          targetRevision: "{{ gitops_branch }}"
+          path: "kubernetes/overlays/{{ env }}"
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: "{{ app_namespace }}"
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+          syncOptions:
+            - CreateNamespace=true
+            - PrunePropagationPolicy=foreground
+          retry:
+            limit: 3
+            backoff:
+              duration: 10s
+              factor: 2
+              maxDuration: 3m
+
+- name: Create ArgoCD RBAC for CI token
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: argocd-ci
+        namespace: argocd

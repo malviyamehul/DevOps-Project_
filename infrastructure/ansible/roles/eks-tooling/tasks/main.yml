@@ -1,0 +1,122 @@
+---
+# roles/eks-tooling/tasks/main.yml
+# Installs cluster-level tooling: namespaces, AWS Load Balancer Controller,
+# Cluster Autoscaler, Metrics Server, and the aws-node-termination-handler.
+
+# ── Namespaces ────────────────────────────────────────────────────────────────
+- name: Create application namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ app_namespace }}"
+    state: present
+    definition:
+      metadata:
+        labels:
+          name: "{{ app_namespace }}"
+
+- name: Create monitoring namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: monitoring
+    state: present
+
+- name: Create argocd namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: argocd
+    state: present
+
+# ── AWS Load Balancer Controller ──────────────────────────────────────────────
+- name: Install AWS Load Balancer Controller CRDs
+  command: >
+    kubectl apply -k
+    "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
+  changed_when: false
+
+- name: Deploy AWS Load Balancer Controller
+  kubernetes.core.helm:
+    name: aws-load-balancer-controller
+    chart_ref: eks/aws-load-balancer-controller
+    release_namespace: kube-system
+    create_namespace: false
+    values:
+      clusterName: "{{ cluster_name }}"
+      serviceAccount:
+        create: true
+        name: aws-load-balancer-controller
+        annotations:
+          eks.amazonaws.com/role-arn: "{{ alb_controller_role_arn }}"
+      replicaCount: 2
+      podDisruptionBudget:
+        maxUnavailable: 1
+
+# ── Cluster Autoscaler ────────────────────────────────────────────────────────
+- name: Deploy Cluster Autoscaler
+  kubernetes.core.helm:
+    name: cluster-autoscaler
+    chart_ref: autoscaler/cluster-autoscaler
+    release_namespace: kube-system
+    values:
+      autoDiscovery:
+        clusterName: "{{ cluster_name }}"
+      awsRegion: "{{ aws_region }}"
+      rbac:
+        serviceAccount:
+          annotations:
+            eks.amazonaws.com/role-arn: "{{ cluster_autoscaler_role_arn }}"
+      extraArgs:
+        balance-similar-node-groups: true
+        skip-nodes-with-system-pods: false
+        expander: least-waste
+
+# ── Metrics Server (required for HPA) ────────────────────────────────────────
+- name: Deploy Metrics Server
+  command: >
+    kubectl apply -f
+    https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+  changed_when: false
+
+# ── AWS Node Termination Handler (graceful SPOT handling) ─────────────────────
+- name: Deploy AWS Node Termination Handler
+  kubernetes.core.helm:
+    name: aws-node-termination-handler
+    chart_ref: eks/aws-node-termination-handler
+    release_namespace: kube-system
+    values:
+      enableSpotInterruptionDraining: true
+      enableRebalanceMonitoring: true
+      enableScheduledEventDraining: true
+
+# ── Fluent Bit (ship pod logs to CloudWatch) ──────────────────────────────────
+- name: Create CloudWatch namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: amazon-cloudwatch
+    state: present
+
+- name: Deploy Fluent Bit for CloudWatch
+  command: >
+    kubectl apply -f
+    https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/fluent-bit/fluent-bit.yaml
+  changed_when: false
+
+- name: Configure Fluent Bit cluster info
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: fluent-bit-cluster-info
+        namespace: amazon-cloudwatch
+      data:
+        cluster.name: "{{ cluster_name }}"
+        http.port: "2020"
+        http.server: "On"
+        logs.region: "{{ aws_region }}"
+        read.head: "Off"
+        read.tail: "On"

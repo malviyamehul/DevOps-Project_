@@ -1,0 +1,25 @@
+---
+# inventories/staging/group_vars/all.yml
+env: staging
+aws_region: us-east-1
+cluster_name: opsforge-staging
+app_namespace: opsforge
+
+# Prometheus
+prometheus_retention: 7d
+prometheus_storage: 10Gi
+grafana_ingress_enabled: false
+grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') }}"
+
+# ArgoCD
+argocd_ingress_enabled: false
+argocd_admin_password_bcrypt: "{{ lookup('env', 'ARGOCD_ADMIN_PASSWORD_BCRYPT') }}"
+gitops_repo_url: "{{ lookup('env', 'GITOPS_REPO_URL') }}"
+gitops_branch: main
+
+# Alerting
+slack_webhook_url: "{{ lookup('env', 'SLACK_WEBHOOK_URL') }}"
+
+# IAM roles (output from Terraform)
+alb_controller_role_arn: "{{ lookup('env', 'ALB_CONTROLLER_ROLE_ARN') }}"
+cluster_autoscaler_role_arn: "{{ lookup('env', 'CLUSTER_AUTOSCALER_ROLE_ARN') }}"

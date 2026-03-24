@@ -1,0 +1,38 @@
+---
+# site.yml — master playbook
+# Run after Terraform applies. Configures the EKS cluster with all tooling.
+#
+# Usage:
+#   ansible-playbook site.yml -i inventories/staging/hosts.yml
+#   ansible-playbook site.yml -i inventories/production/hosts.yml
+#
+# The "hosts" here are localhost — all tasks use kubectl/helm/aws CLI
+# against the cluster, not SSH into nodes.
+
+- name: Common tooling checks
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - common
+
+- name: Configure EKS cluster tooling
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - eks-tooling
+
+- name: Deploy Prometheus and Grafana
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - prometheus
+
+- name: Deploy ArgoCD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - argocd

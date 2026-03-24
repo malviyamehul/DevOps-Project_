@@ -1,0 +1,145 @@
+---
+# roles/prometheus/tasks/main.yml
+# Deploys kube-prometheus-stack (Prometheus + Grafana + Alertmanager)
+# via Helm into the monitoring namespace.
+
+- name: Deploy kube-prometheus-stack
+  kubernetes.core.helm:
+    name: kube-prometheus-stack
+    chart_ref: prometheus-community/kube-prometheus-stack
+    chart_version: "{{ prometheus_chart_version | default('56.6.2') }}"
+    release_namespace: monitoring
+    create_namespace: false
+    wait: true
+    wait_condition:
+      type: Complete
+    values:
+      fullnameOverride: prometheus
+
+      prometheus:
+        prometheusSpec:
+          retention: "{{ prometheus_retention | default('15d') }}"
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: gp2
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: "{{ prometheus_storage | default('20Gi') }}"
+          serviceMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelectorNilUsesHelmValues: false
+
+      grafana:
+        enabled: true
+        adminPassword: "{{ grafana_admin_password }}"
+        persistence:
+          enabled: true
+          size: 5Gi
+        ingress:
+          enabled: "{{ grafana_ingress_enabled | default(false) }}"
+          ingressClassName: alb
+          annotations:
+            alb.ingress.kubernetes.io/scheme: internal
+          hosts:
+            - "grafana.{{ cluster_name }}.internal"
+        dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+              - name: opsforge
+                orgId: 1
+                folder: OpsForge
+                type: file
+                disableDeletion: false
+                options:
+                  path: /var/lib/grafana/dashboards/opsforge
+        dashboards:
+          opsforge:
+            kubernetes-cluster:
+              gnetId: 7249
+              revision: 1
+              datasource: Prometheus
+            nodejs-app:
+              gnetId: 11159
+              revision: 1
+              datasource: Prometheus
+
+      alertmanager:
+        alertmanagerSpec:
+          storage:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: gp2
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 2Gi
+        config:
+          global:
+            resolve_timeout: 5m
+          route:
+            group_by: ["alertname", "cluster", "service"]
+            group_wait: 10s
+            group_interval: 10m
+            repeat_interval: "{{ '1h' if env == 'staging' else '12h' }}"
+            receiver: "{{ 'slack-staging' if env == 'staging' else 'pagerduty-prod' }}"
+          receivers:
+            - name: slack-staging
+              slack_configs:
+                - api_url: "{{ slack_webhook_url | default('') }}"
+                  channel: "#opsforge-alerts-staging"
+                  title: "{{ '{{ .CommonAnnotations.summary }}' }}"
+            - name: pagerduty-prod
+              pagerduty_configs:
+                - service_key: "{{ pagerduty_key | default('') }}"
+
+      nodeExporter:
+        enabled: true
+
+      kubeStateMetrics:
+        enabled: true
+
+- name: Create ServiceMonitor for user-service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: user-service
+        namespace: monitoring
+        labels:
+          release: kube-prometheus-stack
+      spec:
+        selector:
+          matchLabels:
+            app: user-service
+        namespaceSelector:
+          matchNames: ["{{ app_namespace }}"]
+        endpoints:
+          - port: http
+            path: /metrics
+            interval: 30s
+
+- name: Create ServiceMonitor for task-service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: task-service
+        namespace: monitoring
+        labels:
+          release: kube-prometheus-stack
+      spec:
+        selector:
+          matchLabels:
+            app: task-service
+        namespaceSelector:
+          matchNames: ["{{ app_namespace }}"]
+        endpoints:
+          - port: http
+            path: /metrics
+            interval: 30s

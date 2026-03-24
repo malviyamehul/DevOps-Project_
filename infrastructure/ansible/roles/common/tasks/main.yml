@@ -1,0 +1,52 @@
+---
+# roles/common/tasks/main.yml
+# Verify all required CLI tools are installed and the cluster is reachable.
+
+- name: Check kubectl is installed
+  command: kubectl version --client --output=json
+  register: kubectl_check
+  failed_when: kubectl_check.rc != 0
+  changed_when: false
+
+- name: Check helm is installed
+  command: helm version --short
+  register: helm_check
+  failed_when: helm_check.rc != 0
+  changed_when: false
+
+- name: Check aws CLI is installed
+  command: aws --version
+  register: aws_check
+  failed_when: aws_check.rc != 0
+  changed_when: false
+
+- name: Update kubeconfig for target cluster
+  command: >
+    aws eks update-kubeconfig
+    --region {{ aws_region }}
+    --name {{ cluster_name }}
+    --alias {{ cluster_name }}
+  changed_when: false
+
+- name: Verify cluster connectivity
+  command: kubectl cluster-info
+  register: cluster_info
+  failed_when: cluster_info.rc != 0
+  changed_when: false
+
+- name: Print cluster info
+  debug:
+    msg: "Connected to cluster: {{ cluster_name }} in {{ aws_region }}"
+
+- name: Add helm repos
+  command: helm repo add {{ item.name }} {{ item.url }}
+  loop:
+    - { name: prometheus-community, url: "https://prometheus-community.github.io/helm-charts" }
+    - { name: argo,                 url: "https://argoproj.github.io/argo-helm" }
+    - { name: ingress-nginx,        url: "https://kubernetes.github.io/ingress-nginx" }
+    - { name: eks,                  url: "https://aws.github.io/eks-charts" }
+  changed_when: false
+
+- name: Update helm repos
+  command: helm repo update
+  changed_when: false
