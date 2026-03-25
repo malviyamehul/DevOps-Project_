@@ -8,18 +8,18 @@ Manages two environments (staging, production) on AWS EKS.
 ## Architecture Overview
 
 ```
-┌─────────────────── AWS Account ──────────────────────────────────────┐
+┌───────────────────── AWS Account ──────────────────────────────────────┐
 │                                                                        │
-│  ┌── VPC 10.1.0.0/16 (staging) ──┐   ┌── VPC 10.2.0.0/16 (prod) ──┐ │
-│  │  Public subnets  → ALB        │   │  Public subnets  → ALB      │ │
-│  │  Private subnets → EKS nodes  │   │  Private subnets → EKS nodes│ │
-│  │  Database subnets → RDS       │   │  Database subnets → RDS     │ │
-│  │                                │   │                              │ │
-│  │  EKS: t3.medium (2 nodes)     │   │  EKS: m5.large (3+ nodes)   │ │
-│  │  RDS: db.t3.small  single-AZ  │   │  RDS: db.m5.large multi-AZ  │ │
-│  │  Redis: cache.t3.micro x1     │   │  Redis: cache.m5.large x2   │ │
-│  │  NAT: 1 shared                │   │  NAT: 1 per AZ              │ │
-│  └───────────────────────────────┘   └─────────────────────────────┘ │
+│  ┌── VPC 10.1.0.0/16 (staging) ──┐   ┌─── VPC 10.2.0.0/16 (prod) ──┐    │
+│  │  Public subnets  → ALB        │   │  Public subnets  → ALB      │   │
+│  │  Private subnets → EKS nodes  │   │  Private subnets → EKS nodes│   │
+│  │  Database subnets → RDS       │   │  Database subnets → RDS     │   │
+│  │                               │   │                             │   │
+│  │  EKS: t3.medium (2 nodes)     │   │  EKS: m5.large (3+ nodes)   │   │
+│  │  RDS: db.t3.small  single-AZ  │   │  RDS: db.m5.large multi-AZ  │   │
+│  │  Redis: cache.t3.micro x1     │   │  Redis: cache.m5.large x2   │   │
+│  │  NAT: 1 shared                │   │  NAT: 1 per AZ              │   │
+│  └───────────────────────────────┘   └─────────────────────────────┘   │
 │                                                                        │
 │  ECR repositories (shared):  opsforge/{user,task,notification,frontend}│
 │  S3: tfstate-staging  tfstate-production  assets-staging  assets-prod  │
@@ -75,25 +75,37 @@ opsforge-infra/
 Install these tools before running anything:
 
 ```bash
+
+#Scoop: Command-line installer for windows
+Prerequisites: .NET Framework 4.5+ and PowerShell 5.1+
+Run on Powershell `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+`iwr -useb get.scoop.sh | iex` #download and run the Scoop installer script
+scoop --version
+
 # Terraform
-brew install terraform       # or: https://developer.hashicorp.com/terraform/install
+Download the AMD64 version > Extract `terraform_x.x.x_windows_amd64.zip` > Move `terraform.exe`to permenent location, like `C:\terraform` > Add to System PATH
+terraform -version
+
+Alternatively, scoop install terraform
 
 # AWS CLI
-brew install awscli
+Download the latest AWS CLI version 2 MSI installer from the official Amazon AWS Documentation page. > Run the Installer > aws --version
 aws configure                # set access key, secret, region
 
+Alternatively, scoop install aws
+
 # kubectl
-brew install kubectl
+scoop install kubectl
 
 # Helm
-brew install helm
+scoop install helm
 
 # Ansible
 pip install ansible
 ansible-galaxy collection install kubernetes.core
 
 # kustomize (optional, kubectl has it built in)
-brew install kustomize
+scoop install kustomize
 ```
 
 ---
@@ -308,7 +320,7 @@ terraform state list
 No secrets are stored in git or Kubernetes Secrets.
 
 | Secret | Location | How pods access it |
-|---|---|---|
+|--------|----------|--------------------|
 | DB credentials | AWS Secrets Manager | Init container via IRSA |
 | JWT secret | AWS Secrets Manager | Init container via IRSA |
 | Redis auth token | ElastiCache (managed) | VPC network only |
