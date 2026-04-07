@@ -1,0 +1,12 @@
+output "cluster_name"                   { value = module.eks.cluster_name }
+output "cluster_endpoint"               { value = module.eks.cluster_endpoint }
+output "vpc_id"                         { value = module.vpc.vpc_id }
+output "rds_endpoint"                   { value = module.rds.db_endpoint }
+output "redis_endpoint"                 { value = module.elasticache.redis_endpoint }
+output "sqs_queue_url"                  { value = module.sqs.queue_url }
+output "ecr_repository_urls"            { value = module.ecr.repository_urls }
+output "user_service_role_arn"          { value = module.iam.user_service_role_arn }
+output "task_service_role_arn"          { value = module.iam.task_service_role_arn }
+output "notification_service_role_arn"  { value = module.iam.notification_service_role_arn }
+output "db_secret_arn"                  { value = module.rds.db_secret_arn }
+output "jwt_secret_arn"                 { value = module.iam.jwt_secret_arn }
